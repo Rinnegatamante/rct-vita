@@ -38,7 +38,7 @@ By doing so, it's basically as if we emulate a minimalist Android environment in
 - Extract `libfmodstudio.suprx`, if you don't have it already, by following [this guide](https://gist.github.com/hatoving/99253e1b3efdefeaf0ca66e0c5dc7089).
 - Install the vpk from Release tab.
 - Obtain your copy of *RollerCoaster Tycoon Classic* legally for Android in form of an `.apk` and two `.obb` files.
-- Open the apk with your zip explorer and extract all the `.obb` files inside the `assets` folder to `ux0:data/rct/assets`. You can then remove those files from inside the apk to save space.
+- Open the apk with your zip explorer and extract all the `.ogg` files inside the `assets` folder to `ux0:data/rct/assets`. You can then remove those files from inside the apk to save space.
 - Place the `.apk` file, renamed as `game.apk`, inside `ux0:data/rct`.
 - Place the two `.obb` files, renamed respectively as `main.obb` and `patch.obb` omsode `ux0:data/rct`.
 
