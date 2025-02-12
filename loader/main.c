@@ -89,6 +89,10 @@ void *__wrap_memalign(uint32_t alignment, uint32_t size) { return __real_memalig
 void *__wrap_realloc(void *ptr, uint32_t size) { return __real_realloc(ptr, size); };	
 #endif
 
+int __wrap__fcntl_r(struct _reent *reent, int fd, int cmd, ...) {
+	return 0;
+}
+
 void __wrap_abort() {
 	sceClibPrintf("abort called from %p\n", __builtin_return_address(0));
 }
@@ -1812,21 +1816,22 @@ void *real_main(void *argv) {
 	sceClibPrintf("Loading FMOD Studio...\n");
 	if (!file_exists("ur0:/data/libfmodstudio.suprx"))
 		fatal_error("Error libfmodstudio.suprx is not installed.");
+	
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-		int ret = sceNetShowNetstat();
-		SceNetInitParam initparam;
-		if (ret == SCE_NET_ERROR_ENOTINIT) {
-			initparam.memory = malloc(141 * 1024);
-			initparam.size = 141 * 1024;
-			initparam.flags = 0;
-			sceNetInit(&initparam);
-		}
+	int ret = sceNetShowNetstat();
+	SceNetInitParam initparam;
+	if (ret == SCE_NET_ERROR_ENOTINIT) {
+		initparam.memory = malloc(141 * 1024);
+		initparam.size = 141 * 1024;
+		initparam.flags = 0;
+		sceNetInit(&initparam);
+	}
 	sceClibPrintf("sceKernelLoadStartModule %x\n", sceKernelLoadStartModule("vs0:sys/external/libfios2.suprx", 0, NULL, 0, NULL, NULL));
 	sceClibPrintf("sceKernelLoadStartModule %x\n", sceKernelLoadStartModule("vs0:sys/external/libc.suprx", 0, NULL, 0, NULL, NULL));
 	sceClibPrintf("sceKernelLoadStartModule %x\n", sceKernelLoadStartModule("ur0:data/libfmodstudio.suprx", 0, NULL, 0, NULL, NULL));
 	
 	sceClibPrintf("Booting...\n");
-	sceSysmoduleLoadModule(SCE_SYSMODULE_RAZOR_CAPTURE);
+	//sceSysmoduleLoadModule(SCE_SYSMODULE_RAZOR_CAPTURE);
 	//SceUID crasher_thread = sceKernelCreateThread("crasher", crasher, 0x40, 0x1000, 0, 0, NULL);
 	//sceKernelStartThread(crasher_thread, 0, NULL);	
 	
