@@ -10,6 +10,11 @@ endif()
 
 project(rct C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(sndfile REQUIRED IMPORTED_TARGET sndfile)
+pkg_check_modules(vorbisfile REQUIRED IMPORTED_TARGET vorbisfile)
+pkg_check_modules(freetype2 REQUIRED IMPORTED_TARGET freetype2)
+pkg_check_modules(libzip REQUIRED IMPORTED_TARGET libzip)
 set(VITA_APP_NAME "RollerCoaster Tycoon Classic")
 set(VITA_TITLEID  "RCTCLASS1")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
@@ -29,10 +34,20 @@ add_executable(rct
   loader/unzip.c
 )
 
+set(RCT_VITAGL_LIBRARY vitaGL CACHE STRING "vitaGL library for the normal executable")
+set(RCT_SAFE_VITAGL_LIBRARY vitaGL CACHE STRING "vitaGL library without speedhacks for safe.bin")
+
+set_target_properties(rct PROPERTIES LINKER_LANGUAGE CXX)
+
 target_link_libraries(rct
   -Wl,--whole-archive pthread -Wl,--no-whole-archive
+  -Wl,--start-group
+  PkgConfig::sndfile
+  PkgConfig::vorbisfile
+  PkgConfig::freetype2
+  PkgConfig::libzip
   freetype
-  soloud_static
+  soloud
   png
   webp
   jpeg
@@ -49,7 +64,7 @@ target_link_libraries(rct
   z
   m
   stdc++
-  opensles
+  OpenSLES
   sndfile
   vorbis
   vorbisenc
@@ -58,7 +73,7 @@ target_link_libraries(rct
   FLAC
   openal
   imgui
-  vitaGL
+  ${RCT_VITAGL_LIBRARY}
   vitashark
   SceShaccCgExt
   mathneon
@@ -79,7 +94,6 @@ target_link_libraries(rct
   SceFios2_stub
   SceGxm_stub
   SceIme_stub
-  SceLibcBridge_stub
   SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
@@ -87,8 +101,24 @@ target_link_libraries(rct
   SceMotion_stub
   SceHid_stub
   SceVshBridge_stub
-  SceKernelDmacmgr_stub
+  SceKernelDmacMgr_stub
+  -Wl,--end-group
 )
+
+get_target_property(RCT_SOURCES rct SOURCES)
+get_target_property(RCT_SAFE_LIBRARIES rct LINK_LIBRARIES)
+list(FIND RCT_SAFE_LIBRARIES "${RCT_VITAGL_LIBRARY}" RCT_VITAGL_INDEX)
+list(REMOVE_AT RCT_SAFE_LIBRARIES ${RCT_VITAGL_INDEX})
+list(INSERT RCT_SAFE_LIBRARIES ${RCT_VITAGL_INDEX} "${RCT_SAFE_VITAGL_LIBRARY}")
+add_executable(rct_safe ${RCT_SOURCES})
+set_target_properties(rct_safe PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(rct_safe ${RCT_SAFE_LIBRARIES})
+vita_create_self(safe.bin rct_safe UNSAFE)
+if(CMAKE_VERSION VERSION_LESS "3.20.0")
+  add_dependencies(rct safe.bin)
+else()
+  add_dependencies(rct safe.bin-self)
+endif()
 
 vita_create_self(eboot.bin rct UNSAFE)
 vita_create_vpk(rct.vpk ${VITA_TITLEID} eboot.bin
@@ -100,6 +130,8 @@ vita_create_vpk(rct.vpk ${VITA_TITLEID} eboot.bin
 		${CMAKE_SOURCE_DIR}/livearea/pic0.png sce_sys/pic0.png
 		${CMAKE_SOURCE_DIR}/livearea/button.png sce_sys/livearea/contents/button.png
 		${CMAKE_SOURCE_DIR}/livearea/template.xml sce_sys/livearea/contents/template.xml
-		${CMAKE_SOURCE_DIR}/build/safe.bin safe.bin
+		${CMAKE_CURRENT_BINARY_DIR}/safe.bin safe.bin
 		${CMAKE_SOURCE_DIR}/settings.cfg settings.cfg
 )
+
+set_property(SOURCE loader/so_util.c APPEND PROPERTY COMPILE_OPTIONS -Wno-error=return-mismatch -Wno-error=incompatible-pointer-types)

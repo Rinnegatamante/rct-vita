@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -288,7 +289,6 @@ extern void *__cxa_finalize;
 extern void *__cxa_call_unexpected;
 extern void *__gnu_unwind_frame;
 extern void *__stack_chk_fail;
-int open(const char *pathname, int flags);
 
 static int chk_guard = 0x42424242;
 static int *__stack_chk_guard_fake = &chk_guard;
@@ -858,7 +858,8 @@ void glShaderSource_hook(GLuint handle, GLsizei count, const GLchar *const *stri
 		shd[s - *string] = 0;
 		strcat(shd, "vec2(vIndex + (1.0f / 128.0f), 0.0f)");
 		strcat(shd, &s[16]);
-		glShaderSource(handle, 1, &shd, NULL);
+		const GLchar *source = shd;
+		glShaderSource(handle, 1, &source, NULL);
 		free(shd);
 	} else {
 		glShaderSource(handle, count, string, length);
@@ -1419,7 +1420,7 @@ void *dlsym_hook( void *handle, const char *symbol) {
 	sceClibPrintf("dlsym %s\n", symbol);
 	for (size_t i = 0; i < numhooks; ++i) {
 		if (!strcmp(symbol, default_dynlib[i].symbol)) {
-			return default_dynlib[i].func;
+			return (void *)default_dynlib[i].func;
 		}
 	}
 	return vglGetProcAddress(symbol);
@@ -1573,7 +1574,7 @@ void *CallObjectMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
 	int lang = -1;
 	switch (methodID) {
 	default:
-		return 0x34343434;
+		return (void *)(uintptr_t)0x34343434;
 	}
 }
 
@@ -1670,7 +1671,7 @@ void OEUtilLog(const char *fmt, ...) {
 
 	sceClibPrintf("[UTIL_LOG] %s\n", string);
 #endif
-	return 0;
+	return;
 }
 
 void patch_game(void) {
@@ -1892,7 +1893,7 @@ void *real_main(void *argv) {
 	unzClose(apk_file);
 	
 	//vglUseCachedMem(GL_TRUE);
-	vglUseVram(GL_FALSE);
+	/* Current vitaGL uses RAM-first allocation without a selector. */
 	vglSetSemanticBindingMode(VGL_MODE_POSTPONED);
 	vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
 	
@@ -2027,9 +2028,9 @@ void *real_main(void *argv) {
 				int id = i;
 
 				if (lastX[i] == -1 || lastY[i] == -1) {
-					EngineTouchAdd(&fake_env, NULL, i, x, y);
+					EngineTouchAdd(&fake_env, 0, i, x, y);
 				} else {
-					EngineTouchMove(&fake_env, NULL, i, x, y);
+					EngineTouchMove(&fake_env, 0, i, x, y);
 				}
 
 				lastX[i] = x;
@@ -2037,7 +2038,7 @@ void *real_main(void *argv) {
 
 			} else {
 				if (lastX[i] != -1 || lastY[i] != -1) {
-					EngineTouchRemove(&fake_env, NULL, i, lastX[i], lastY[i]);
+					EngineTouchRemove(&fake_env, 0, i, lastX[i], lastY[i]);
 					lastX[i] = -1;
 					lastY[i] = -1;
 				}
